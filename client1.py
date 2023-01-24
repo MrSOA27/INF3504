@@ -110,6 +110,7 @@ def client_program():
         msg = input("-> ")
         if msg == "exit":
             client.send(msg.encode(FORMAT))
+            print(client.recv(SIZE).decode(FORMAT))
             break
 
         elif msg == "ls":

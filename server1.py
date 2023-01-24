@@ -112,6 +112,7 @@ def handle_client(conn, addr, client_id):
         print(f"Message from {addr}: {msg}")
         if msg == "exit":
             print(f"Connection from client {client_id} closed ({addr})")
+            conn.send("Disconnecteddddddd".encode(FORMAT))
             connected = False
         elif msg[:3] == "ls ":
             print(f"ls {addr}")
@@ -151,6 +152,7 @@ def server_program():
 
     while True:
         conn, addr = server.accept()
+        print (conn , addr)
         client_id += 1
         thread = threading.Thread(target=handle_client, args=(conn, addr, client_id))
         thread.start()
