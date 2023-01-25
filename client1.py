@@ -40,24 +40,26 @@ def ls(client, path):
     msg = client.recv(SIZE).decode(FORMAT)
     print(msg)
 
-def cd(client, newCurrentPath, currentPath):
+def cd(client, newCurrentPath):
+    """
     if newCurrentPath == "..":
+        
         if currentPath == "root":
             print("You are already in root")
             return currentPath
         else:
             currentPath = currentPath[:currentPath.rfind("/")]
             return currentPath
+    else:"""
+    client.send(f"cd {newCurrentPath}".encode(FORMAT))
+    if client.recv(SIZE).decode(FORMAT) == "ok":
+        return f"{newCurrentPath}"
     else:
-        client.send(f"cd {newCurrentPath} {currentPath}".encode(FORMAT))
-        if client.recv(SIZE).decode(FORMAT) == "ok":
-            return f"{currentPath}/{newCurrentPath}"
-        else:
-            print("Directory not found")
-            return currentPath
+        print("Directory not found")
+        return 
 
-def mkdir(client, newDir, path):
-    client.send(f"mkdir {newDir} {path}".encode(FORMAT))
+def mkdir(client, newDir):
+    client.send(f"mkdir {newDir}".encode(FORMAT))
     if client.recv(SIZE).decode(FORMAT) == "ok":
         print("Directory created")
     else:
@@ -113,16 +115,16 @@ def client_program():
             print(client.recv(SIZE).decode(FORMAT))
             break
 
-        elif msg == "ls":
-            ls(client, currentDir)
+        elif msg[:3] == "ls ":
+            ls(client, msg[3:])
 
         elif msg[:3] == "cd ":
-            currentDir = cd(client, msg[3:], currentDir)
+            cd(client, msg[3:])
             print(currentDir)
 
         elif msg[0:6] == "mkdir ":
             print("mkdir")
-            mkdir(client, msg[6:], currentDir)
+            mkdir(client, msg[6:])
 
         elif msg[0:7] == "upload ":#need to verify if the file exists
             print("upload")
