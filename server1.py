@@ -43,14 +43,17 @@ def send_file(conn, file):
 
 
 def ls(conn, path):
-    
-    files = os.listdir(path)
     directories = ""
-    for name in files:
-        directories += f"\n{name}"
-    if directories == "":
-        directories = " This directory is empty"
-    conn.send(directories[1:].encode(FORMAT))
+    try:
+        files = os.listdir(path)
+        for name in files:
+            directories += f"\n{name}"
+        if directories == "":
+            directories = " This directory is empty"
+        conn.send(directories[1:].encode(FORMAT))
+    except:
+        directories = " directory not found"
+        conn.send(directories[1:].encode(FORMAT))
 
 def cd(conn, newPath,currentPath):
 #    nPath=f"{newPath}"
