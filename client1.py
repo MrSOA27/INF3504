@@ -145,6 +145,8 @@ def client_program():
             #receive an ok message from the server or an error message
             #receive the file from the server
             #save the file in the client
+        else :
+            print("Command not found please try again")
 
 
 
