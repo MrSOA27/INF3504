@@ -17,21 +17,32 @@ def is_valid_port(PORT):
     return match != None
 
 # Exemple d'utilisation
-SERVER  = input("Entrez l'adresse IP: ")
-if not is_valid_ip(SERVER ):
-    sys.exit("Adresse IP non valide")
-PORT = input("Entrez le port: ")
-if not is_valid_port(PORT):
-    sys.exit("Port non valide")
+def server():
+    while True :
+        SERVER  = input("Enter the IP Address of the server: ")
+        if not is_valid_ip(SERVER):
+            print("IP address is not valide, please try again")
+        else:
+            break
+    while True: 
+        PORT = input("Enter the Port of the server: ")
+        if not is_valid_port(PORT):
+            print("Port is not valide, please try again")
+        else:
+            break
+    IP = SERVER
+    PORT = int(PORT)
+    #IP = socket.gethostbyname(socket.gethostname())
+    #PORT = 5005
+    addr = (IP, PORT)
+    return addr
 
-
-IP = SERVER
-PORT = int(PORT)
-#IP = socket.gethostbyname(socket.gethostname())
-#PORT = 5005
-ADDR = (IP, PORT)
+#ADDR = server()
 SIZE = 1024
 FORMAT = "utf-8"
+
+
+
 
 
 
@@ -112,44 +123,46 @@ def download(client, name, path):
 
 
 def client_program():
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(ADDR)
-    currentDir = os.getcwd()
+    try:
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect(server())
+        currentDir = os.getcwd()
+        while True:
+            msg = input("-> ")
+            if msg == "exit":
+                client.send(msg.encode(FORMAT))
+                print(client.recv(SIZE).decode(FORMAT))
+                break
 
-    while True:
-        msg = input("-> ")
-        if msg == "exit":
-            client.send(msg.encode(FORMAT))
-            print(client.recv(SIZE).decode(FORMAT))
-            break
+            elif msg[:2] == "ls":
+                ls(client, msg[3:])
 
-        elif msg[:2] == "ls":
-            ls(client, msg[3:])
+            elif msg[:3] == "cd ":
+                cd(client, msg[3:], currentDir)
+                print(currentDir)
 
-        elif msg[:3] == "cd ":
-            cd(client, msg[3:], currentDir)
-            print(currentDir)
+            elif msg[0:6] == "mkdir ":
+                print("mkdir")
+                mkdir(client, msg[6:])
 
-        elif msg[0:6] == "mkdir ":
-            print("mkdir")
-            mkdir(client, msg[6:])
-
-        elif msg[0:7] == "upload ":#need to verify if the file exists
-            print("upload")
-            send_file(client, msg[7:], currentDir)
-        elif msg[0:9] == "download ":
-            print("download")
-            #send download command to the server with as a third argument the current directory
-            #send the file name to the server
-            download(client, msg[9:], currentDir)
-            #receive an ok message from the server or an error message
-            #receive the file from the server
-            #save the file in the client
-        else :
-            print("Command not found please try again")
+            elif msg[0:7] == "upload ":#need to verify if the file exists
+                print("upload")
+                send_file(client, msg[7:], currentDir)
+            elif msg[0:9] == "download ":
+                print("download")
+                #send download command to the server with as a third argument the current directory
+                #send the file name to the server
+                download(client, msg[9:], currentDir)
+                #receive an ok message from the server or an error message
+                #receive the file from the server
+                #save the file in the client
+            else :
+                print("Command not found please try again")
 
 
-
+    except:
+        print("The IP and/or the port are not valid please try again")
+        client_program()
 
 
 if __name__ == '__main__':
