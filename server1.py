@@ -43,6 +43,7 @@ def send_file(conn, file):
 
 
 def ls(conn, path):
+    
     files = os.listdir(path)
     directories = ""
     for name in files:
@@ -51,16 +52,17 @@ def ls(conn, path):
         directories = " This directory is empty"
     conn.send(directories[1:].encode(FORMAT))
 
-def cd(conn, newPath):
+def cd(conn, newPath,currentPath):
 #    nPath=f"{newPath}"
     print(newPath)
     nPath=str(newPath)
     print(nPath)
-    files = os.listdir(".")
-    if nPath in files:
+    files = os.listdir(currentPath)
+#    if nPath in files:
+    try:
         conn.send("ok".encode(FORMAT))
         os.chdir(nPath)
-    else:
+    except:
         conn.send("not ok".encode(FORMAT))
         
 
@@ -125,8 +127,10 @@ def handle_client(conn, addr, client_id):
             print(f"ls {addr}")
             ls(conn, msg[3:])
         elif msg[0:3] == "cd ":
+            cPath=os.getcwd()
+            print(cPath)
             print(f"cd {addr}")
-            cd(conn,msg[3:])
+            cd(conn,msg[3:],cPath)
         elif msg[0:6] == "mkdir ":
             print(f"mkdir {addr}")
             print(msg)

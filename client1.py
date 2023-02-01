@@ -36,27 +36,35 @@ FORMAT = "utf-8"
 
 
 def ls(client, path):
+    if not path or path.isspace():
+        path = "."
+        print(path)
     client.send(f"ls {path}".encode(FORMAT))
     msg = client.recv(SIZE).decode(FORMAT)
     print(msg)
 
-def cd(client, newCurrentPath):
-    """
+def cd(client, newCurrentPath,currentPath):
+    
     if newCurrentPath == "..":
-        
         if currentPath == "root":
             print("You are already in root")
             return currentPath
         else:
             currentPath = currentPath[:currentPath.rfind("/")]
-            return currentPath
-    else:"""
-    client.send(f"cd {newCurrentPath}".encode(FORMAT))
-    if client.recv(SIZE).decode(FORMAT) == "ok":
-        return f"{newCurrentPath}"
+            print(currentPath)
+            client.send(f"cd {currentPath}".encode(FORMAT))
+            if client.recv(SIZE).decode(FORMAT) == "ok":
+                return f"{currentPath}"
+            else:
+                print("Directory not found")
+            return 
     else:
-        print("Directory not found")
-        return 
+        client.send(f"cd {newCurrentPath}".encode(FORMAT))
+        if client.recv(SIZE).decode(FORMAT) == "ok":
+            return f"{newCurrentPath}"
+        else:
+            print("Directory not found")
+            return 
 
 def mkdir(client, newDir):
     client.send(f"mkdir {newDir}".encode(FORMAT))
@@ -106,7 +114,7 @@ def download(client, name, path):
 def client_program():
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect(ADDR)
-    currentDir = "root"
+    currentDir = os.getcwd()
 
     while True:
         msg = input("-> ")
@@ -115,11 +123,11 @@ def client_program():
             print(client.recv(SIZE).decode(FORMAT))
             break
 
-        elif msg[:3] == "ls ":
+        elif msg[:2] == "ls":
             ls(client, msg[3:])
 
         elif msg[:3] == "cd ":
-            cd(client, msg[3:])
+            cd(client, msg[3:], currentDir)
             print(currentDir)
 
         elif msg[0:6] == "mkdir ":
