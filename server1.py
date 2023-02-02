@@ -87,7 +87,8 @@ def receive_file(conn, name, path):
     if name in files:
         conn.send("not ok".encode(FORMAT))
         return
-    conn.send("ok".encode(FORMAT))
+    else:
+        conn.send("ok".encode(FORMAT))
     file = open(new_path, "wb") #openeing a non existing file will create it
     while True :
         write = conn.recv(SIZE)
@@ -95,7 +96,7 @@ def receive_file(conn, name, path):
         if sys.getsizeof(write) < 1024: #if the size of the data is less than 1024 bytes it means that it is the last data
             break
     file.close()
-    conn.send("ok".encode(FORMAT))
+    #conn.send("ok".encode(FORMAT))
 
 def send_file(conn, name, path):
     print(f"Checking : {name}")
