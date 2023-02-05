@@ -34,8 +34,8 @@ def server():
     PORT = int(PORT)
     #IP = socket.gethostbyname(socket.gethostname())
     #PORT = 5005
-    addr = (IP, PORT)
-    return addr
+    address = (IP, PORT)
+    return address
 
 #ADDR = server()
 SIZE = 1024
@@ -46,12 +46,16 @@ FORMAT = "utf-8"
 
 
 
-def ls(client, path):
+def ls(client, path,currentPath):
     if not path or path.isspace():
-        path = "."
-        print(path)
-    client.send(f"ls {path}".encode(FORMAT))
+        ppath = "."
+    else:
+        ppath=path
+#        print(path)
+#    cd(client,path,currentPath)
+    client.send(f"ls {ppath} {currentPath}".encode(FORMAT))
     msg = client.recv(SIZE).decode(FORMAT)
+ #   cpath = client.recv(SIZE).decode(FORMAT)
     print(msg)
 
 def cd(client, newCurrentPath,currentPath):
@@ -71,12 +75,33 @@ def cd(client, newCurrentPath,currentPath):
             return
             
     else:"""
+    '''
     client.send(f"cd {newCurrentPath}".encode(FORMAT))
     if client.recv(SIZE).decode(FORMAT) == "ok":
         return f"{newCurrentPath}"
+    '''
+    '''
+    client.send(f"cd {newCurrentPath} {currentPath}".encode(FORMAT))
+    if client.recv(SIZE).decode(FORMAT) == "ok":
+        return f"{currentPath}/{newCurrentPath}"
     else:
         print("Directory not found")
         return 
+    '''
+    if newCurrentPath[:2] == "..":
+        if currentPath == "/home/mrsoa":
+            print("You are already in root")
+            return currentPath
+        else:
+            currentPath = currentPath[:currentPath.rfind("/")]
+            return currentPath
+    else:
+        client.send(f"cd {newCurrentPath} {currentPath}".encode(FORMAT))
+        if client.recv(SIZE).decode(FORMAT) == "ok":
+            return f"{currentPath}/{newCurrentPath}"
+        else:
+            print("Directory not found")
+            return currentPath
 
 def mkdir(client, newDir):
     client.send(f"mkdir {newDir}".encode(FORMAT))
@@ -85,38 +110,38 @@ def mkdir(client, newDir):
     else:
         print("Directory already exists")
 
-def upload(client, name,path): #don't know if file should be a path or just the name for now it's just the name
-    files = os.listdir(path)
-    if name in files:
-        client.send(f"upload {name} {path}".encode(FORMAT))
-    
-        #open file
-        file = open(name , "rb")
+def upload(client, name, path): #don't know if file should be a path or just the name for now it's just the name
+#    cpath = os.getcwd
+ #   files = os.listdir(cpath)
+  #  if name in files:
+    client.send(f"upload {name} {path}".encode(FORMAT))
 
-        #send file name
-        if client.recv(SIZE).decode(FORMAT) == "not ok":
-            print("File name already exists")
-            file.close()
-            return
-        
-        while True:
-            read = file.read(SIZE)
-            if not read:
-                break
-            client.send(read)
-        
-        file.close
-        print("File sent")
-    else : 
-        print(f"There is no {name} file found")
+    #open file
+    file = open(name , "rb")
+
+    #send file name
+    if client.recv(SIZE).decode(FORMAT) == "not ok":
+        print("File name already exists")
+        file.close()
+        return
+    
+    while True:
+        read = file.read(SIZE)
+        if not read:
+            break
+        client.send(read)
+    
+    file.close
+    print("File sent")
+#    else : 
+#       print(f"There is no {name} file found")
 
 def download(client, name, path):
     client.send(f"download {name} {path}".encode(FORMAT))
 
     if client.recv(SIZE).decode(FORMAT) == "not ok":
         print("File does not exist")
-        return
-    
+        return    
     file = open(name, "wb")
     while True :
         write = client.recv(SIZE)
@@ -125,40 +150,34 @@ def download(client, name, path):
             break
     file.close()
 
-
 def client_program():
     try:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect(server())
-        currentDir = os.getcwd()
-        path = "."
-
+        currentDir = "/home/mrsoa"
+#        path = ".."
         while True:
             msg = input("-> ")
             if msg == "exit":
                 client.send(msg.encode(FORMAT))
                 print(client.recv(SIZE).decode(FORMAT))
                 break
-
             elif msg[:2] == "ls":
-                ls(client, msg[3:])
-
+                ls(client, msg[3:],currentDir)
             elif msg[:3] == "cd ":
-                cd(client, msg[3:], currentDir)
+                currentDir=cd(client, msg[3:], currentDir)
                 print(currentDir)
-
             elif msg[0:6] == "mkdir ":
                 print("mkdir")
                 mkdir(client, msg[6:])
-
             elif msg[0:7] == "upload ":#need to verify if the file exists
                 print("uploading...")
-                upload(client, msg[7:], path)
+                upload(client, msg[7:], currentDir)
             elif msg[0:9] == "download ":
                 print("downloading...")
                 #send download command to the server with as a third argument the current directory
                 #send the file name to the server
-                download(client, msg[9:], path)
+                download(client, msg[9:], currentDir)
                 #receive an ok message from the server or an error message
                 #receive the file from the server
                 #save the file in the client
