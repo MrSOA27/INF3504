@@ -3,159 +3,152 @@ import socket
 import sys
 import re
 
-
-# Vérifie si l'adresse IP entrée est valide
-def is_valid_ip(SERVER):
-    match = re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', SERVER )
-    if match:
-        match= re.match(r'^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', SERVER)
-    return match != None
-
-# Vérifie si le port entré est valide
-def is_valid_port(PORT):
-    match = re.match(r'^50(0[0-9]|[1-4][0-9]|50)$', PORT)
-    return match != None
-
-# Exemple d'utilisation
-def server():
-    while True :
-        SERVER  = input("Enter the IP Address of the server: ")
-        if not is_valid_ip(SERVER):
-            print("IP address is not valide, please try again")
-        else:
-            break
-    while True: 
-        PORT = input("Enter the Port of the server: ")
-        if not is_valid_port(PORT):
-            print("Port is not valide, please try again")
-        else:
-            break
-    IP = SERVER
-    PORT = int(PORT)
-    #IP = socket.gethostbyname(socket.gethostname())
-    #PORT = 5005
-    address = (IP, PORT)
-    return address
-
-#ADDR = server()
 SIZE = 1024
 FORMAT = "utf-8"
 
+'''This function will validate the ip address'''
+def is_valid_ip(SERVER):
+    try:
+        match = re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', SERVER )
+        if match:
+            match= re.match(r'^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', SERVER)
+        return match != None
+    except:
+        print("Uknown error has occured")
 
+'''This function will validate the port, the port should be between 5000 and 5050'''
+def is_valid_port(PORT):
+    try:
+        match = re.match(r'^50(0[0-9]|[1-4][0-9]|50)$', PORT)
+        return match != None
+    except:
+        print("Uknown error has occured")
 
+'''This function will hundle the IP and the PORT and prevent any error may  occur'''
+def server():
+    try:
+        while True :
+            SERVER  = input("Enter the IP Address of the server: ")
+            if not is_valid_ip(SERVER):
+                print("IP address is not valide, please try again")
+            else:
+                break
+        while True: 
+            PORT = input("Enter the Port of the server: ")
+            if not is_valid_port(PORT):
+                print("Port is not valide, please try again")
+            else:
+                break
+        IP = SERVER
+        PORT = int(PORT)
+        address = (IP, PORT)
+        return address
+    except:
+        print("Uknown error has occured")    
 
-
-
+'''This function will handle the ls Linux command, so it will receive connection , path ,  current path ass parameter and return nothing, 
+it will send the list of directories to the client, and directory not found in case not directory is found'''
 def ls(client, path,currentPath):
-    if not path or path.isspace():
-        ppath = "."
-    else:
-        ppath=path
-#        print(path)
-#    cd(client,path,currentPath)
-    client.send(f"ls {ppath} {currentPath}".encode(FORMAT))
-    msg = client.recv(SIZE).decode(FORMAT)
- #   cpath = client.recv(SIZE).decode(FORMAT)
-    print(msg)
-
-def cd(client, newCurrentPath,currentPath):
-    """
-    if newCurrentPath == "..":
-        if currentPath == "root":
-            print("You are already in root")
-            return currentPath
+    try:
+        
+        if not path or path.isspace():
+            ppath = "."
         else:
-            currentPath = currentPath[:currentPath.rfind("/")]
-            print(currentPath)
-            client.send(f"cd {currentPath}".encode(FORMAT))
+            ppath=path
+        client.send(f"ls {ppath} {currentPath}".encode(FORMAT))
+        msg = client.recv(SIZE).decode(FORMAT)
+        print(msg)
+    except:
+        print("Uknown error has occured")
+'''
+This fucntion will handle the cd Linux command (change directory) and send ok if the changing has been succesdfully otherwise, will not ok 
+'''
+def cd(client, newCurrentPath,currentPath):
+    try:
+        if newCurrentPath[:2] == "..":
+            if currentPath == "/home":
+                print("You are already in home")
+                return currentPath
+            else:
+                currentPath = currentPath[:currentPath.rfind("/")]
+                return currentPath
+        else:
+            client.send(f"cd {newCurrentPath} {currentPath}".encode(FORMAT))
             if client.recv(SIZE).decode(FORMAT) == "ok":
-                return f"{currentPath}"
+                return f"{currentPath}/{newCurrentPath}"
             else:
                 print("Directory not found")
-            return
-            
-    else:"""
-    '''
-    client.send(f"cd {newCurrentPath}".encode(FORMAT))
-    if client.recv(SIZE).decode(FORMAT) == "ok":
-        return f"{newCurrentPath}"
-    '''
-    '''
-    client.send(f"cd {newCurrentPath} {currentPath}".encode(FORMAT))
-    if client.recv(SIZE).decode(FORMAT) == "ok":
-        return f"{currentPath}/{newCurrentPath}"
-    else:
-        print("Directory not found")
-        return 
-    '''
-    if newCurrentPath[:2] == "..":
-        if currentPath == "/home/mrsoa":
-            print("You are already in root")
-            return currentPath
-        else:
-            currentPath = currentPath[:currentPath.rfind("/")]
-            return currentPath
-    else:
-        client.send(f"cd {newCurrentPath} {currentPath}".encode(FORMAT))
-        if client.recv(SIZE).decode(FORMAT) == "ok":
-            return f"{currentPath}/{newCurrentPath}"
-        else:
-            print("Directory not found")
-            return currentPath
+                return currentPath
+    except:
+        print("Uknown error has occured")
 
+'''
+This function will handle mkdir Linux command (make directory command), this command will create a new directory by the name of "newDirectory" 
+and print Unable to create the directory in case of failure of creating for any raison
+'''
 def mkdir(client, newDir):
-    client.send(f"mkdir {newDir}".encode(FORMAT))
-    if client.recv(SIZE).decode(FORMAT) == "ok":
-        print("Directory created")
-    else:
-        print("Directory already exists")
+    try:
+        client.send(f"mkdir {newDir}".encode(FORMAT))
+        if client.recv(SIZE).decode(FORMAT) == "ok":
+            print("Directory created")
+        else:
+            print("Directory already exists")
+    except:
+        print("Uknown error has occured")
+'''
+This fucntion will handle uploading the documents from the client's to the server's side 
+'''
+def upload(client, file, path):
+    try:
+        client.send(f"upload {file} {path}".encode(FORMAT))
+        file = open(file , "rb")
+        if client.recv(SIZE).decode(FORMAT) == "not ok":
+            print("File name already exists")
+            file.close()
+            return
+        else :
+            while True:
+                read = file.read(SIZE)
+                if not read:
+                    break
+                client.send(read)
+            file.close
+            print("File sent")
+    except:
+        print("Uknown error has occured")
 
-def upload(client, name, path): #don't know if file should be a path or just the name for now it's just the name
-#    cpath = os.getcwd
- #   files = os.listdir(cpath)
-  #  if name in files:
-    client.send(f"upload {name} {path}".encode(FORMAT))
 
-    #open file
-    file = open(name , "rb")
+'''
+This fucntion will handle downloading the documents from the server to the client's side 
+'''
+def download(client, file, path):
+    try:
+        client.send(f"download {file} {path}".encode(FORMAT))
+        if client.recv(SIZE).decode(FORMAT) == "not ok":
+            print("File does not exist")
+            return    
+        else:
+            file = open(file, "wb")
+            while True :
+                write = client.recv(SIZE)
+                file.write(write)
+                if sys.getsizeof(write) < 1024:
+                    break
+            file.close()
+            print ("File received")
+    except:
+        print("Uknown error has occured")
 
-    #send file name
-    if client.recv(SIZE).decode(FORMAT) == "not ok":
-        print("File name already exists")
-        file.close()
-        return
-    
-    while True:
-        read = file.read(SIZE)
-        if not read:
-            break
-        client.send(read)
-    
-    file.close
-    print("File sent")
-#    else : 
-#       print(f"There is no {name} file found")
-
-def download(client, name, path):
-    client.send(f"download {name} {path}".encode(FORMAT))
-
-    if client.recv(SIZE).decode(FORMAT) == "not ok":
-        print("File does not exist")
-        return    
-    file = open(name, "wb")
-    while True :
-        write = client.recv(SIZE)
-        file.write(write)
-        if sys.getsizeof(write) < 1024: #if the size of the data is less than 1024 bytes it means that it is the last data
-            break
-    file.close()
-
+'''
+This function is a client-side program that communicates with a server over a network using the socket module in Python. 
+The program initializes a socket using socket.socket(socket.AF_INET, socket.SOCK_STREAM) and connects to the server 
+using client.connect(server()). The server() function returns the IP address and port number of the server. The program then enters an 
+infinite loop where it waits for user input and executes different commands based on the input.'''
 def client_program():
     try:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect(server())
-        currentDir = "/home/mrsoa"
-#        path = ".."
+        currentDir = "/home"
         while True:
             msg = input("-> ")
             if msg == "exit":
@@ -170,21 +163,14 @@ def client_program():
             elif msg[0:6] == "mkdir ":
                 print("mkdir")
                 mkdir(client, msg[6:])
-            elif msg[0:7] == "upload ":#need to verify if the file exists
+            elif msg[0:7] == "upload ":
                 print("uploading...")
                 upload(client, msg[7:], currentDir)
             elif msg[0:9] == "download ":
                 print("downloading...")
-                #send download command to the server with as a third argument the current directory
-                #send the file name to the server
                 download(client, msg[9:], currentDir)
-                #receive an ok message from the server or an error message
-                #receive the file from the server
-                #save the file in the client
             else :
                 print("Command not found please try again")
-
-
     except:
         print("The IP and/or the port are not valid please try again")
         client_program()

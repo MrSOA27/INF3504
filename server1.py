@@ -5,32 +5,22 @@ import threading
 import re
 import datetime
 
+SIZE = 1024
+FORMAT = "utf-8"
 
-# Vérifie si l'adresse IP entrée est valide
+'''This function will validate the ip address'''
 def is_valid_ip(SERVER):
     match = re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', SERVER )
     if match:
         match= re.match(r'^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', SERVER)
     return match != None
 
-# Vérifie si le port entré est valide
+'''This function will validate the port, the port should be between 5000 and 5050'''
 def is_valid_port(PORT):
     match = re.match(r'^50(0[0-9]|[1-4][0-9]|50)$', PORT)
     return match != None
 
-# Exemple d'utilisation
-'''
-SERVER  = input("Entrez l'adresse IP: ")
-if not is_valid_ip(SERVER ):
-    sys.exit("Adresse IP non valide")
-PORT = input("Entrez le port: ")
-if not is_valid_port(PORT):
-    sys.exit("Port non valide")
-
-
-IP = SERVER
-PORT = int(PORT)
-'''
+'''This function will hundle the IP and the PORT and prevent any error may  occur'''
 def server():
     while True :
         SERVER  = input("Enter the IP Address of the server: ")
@@ -46,189 +36,167 @@ def server():
             break
     IP = SERVER
     PORT = int(PORT)
-    #IP = socket.gethostbyname(socket.gethostname())
-    #PORT = 5005
-    addr = (IP, PORT)
-    return addr
-#IP = socket.gethostbyname(socket.gethostname())
-#PORT = 5005
-#ADDR = (IP, PORT)
-SIZE = 1024
-FORMAT = "utf-8"
+    address = (IP, PORT)
+    return address
 
-
-
-
-def send_file(conn, file):
-    pass
-
-
-def ls(conn, path, current_path):
+'''This function will handle the ls Linux command, so it will receive connection , path ,  current path ass parameter and return nothing, 
+it will send the list of directories to the client, and directory not found in case not directory is found'''
+def ls(connection, path, currentPath):
     directories = ""
-#    current_path = os.getcwd()
     try:
- #       os.chdir(current_path)
-        files = os.listdir(f"{current_path}/{path}")
-        for name in files:
-            directories += f"\n{name}"
+        files = os.listdir(f"{currentPath}/{path}")
+        for file in files:
+            directories += f"\n{file}"
         if directories == "":
-            directories = " This directory is empty"
- #       conn.send(current_path.encode(FORMAT))
-
-        conn.send(directories[1:].encode(FORMAT))
-
+            directories = "This directory is empty"
+        connection.send(directories[1:].encode(FORMAT))
     except:
-        directories = " directory not found"
-        conn.send(directories[1:].encode(FORMAT))
+        directories = "Directory not found"
+        connection.send(directories[1:].encode(FORMAT))
 
-def cd(conn, newPath,currentPath):
-    '''
-#    nPath=f"{newPath}"
-    print(newPath)
-    nPath=str(newPath)
-    print(nPath)
-    files = os.listdir(currentPath)
-#    if nPath in files:
+'''
+This fucntion will handle the cd Linux command (change directory) and send ok if the changing has been succesdfully otherwise, will not ok 
+'''
+def cd(connection, newPath,currentPath):
     try:
-        conn.send("ok".encode(FORMAT))
-        os.chdir(nPath)
-    except:
-        conn.send("not ok".encode(FORMAT))
-    '''
-    files = os.listdir(currentPath)
-    try:
- #       if str(newPath) in files:
-        conn.send("ok".encode(FORMAT))
+        connection.send("ok".encode(FORMAT))
         os.chdir(f"{currentPath}/{newPath}")
     except:
-        conn.send("not ok".encode(FORMAT))
-        
+        connection.send("not ok".encode(FORMAT))
 
+'''
+This function will handle mkdir Linux command (make directory command), this command will create a new directory by the name of "newDirectory" 
+and print Unable to create the directory in case of failure of creating for any raison
+'''
+def mkdir(connection, newDirectory):
+    try:
+        path="."
+        files = os.listdir(path)
+        if newDirectory not in files:
+            os.mkdir(f"{path}/{newDirectory}")
+            connection.send("ok".encode(FORMAT))
+        else:
+            connection.send("not ok".encode(FORMAT))
+    except:
+        connection.send("not ok".encode(FORMAT))
+        print("Unable to create the directory")
 
-def mkdir(conn, newDir):
-    path="."
+'''
+This fucntion will handle uploading the documents from the client's to the server's side 
+'''
+def upload(connection, fileName, path):
+    print(f"Receiving... :{fileName}")
+    new_path = path + "/" + fileName
     files = os.listdir(path)
-    if newDir not in files:
-        os.mkdir(f"{path}/{newDir}")
-        conn.send("ok".encode(FORMAT))
-    else:
-        conn.send("not ok".encode(FORMAT))
-
-
-def receive_file(conn, name, path):
-    print(f"Receiving :{name}")
-    new_path = path + "/" + name
-    files = os.listdir(path)
-    if name in files:
-        conn.send("not ok".encode(FORMAT))
+    if fileName in files:
+        connection.send("not ok".encode(FORMAT))
         return
-    
-    conn.send("ok".encode(FORMAT))
-    file = open(new_path, "wb") #openeing a non existing file will create it
+    connection.send("ok".encode(FORMAT))
+    file = open(new_path, "wb")
     while True :
-        write = conn.recv(SIZE)
+        write = connection.recv(SIZE)
         file.write(write)
-        if sys.getsizeof(write) < 1024: #if the size of the data is less than 1024 bytes it means that it is the last data
+        if sys.getsizeof(write) < 1024:
             break
     file.close()
-    conn.send("ok".encode(FORMAT))
-
-def send_file(conn, name, path):
-    print(f"Checking : {name}")
+#    connection.send("ok".encode(FORMAT))
+    
+'''
+This fucntion will handle downloading the documents from the server to the client's side 
+'''
+def download(connection, fileName, path):
+    print(f"Checking... : {fileName}")
     files = os.listdir(path)
-    if name in files:
-        conn.send("ok".encode(FORMAT))
+    print(files)
+    if fileName in files:
+        connection.send("ok".encode(FORMAT))
+        print("ok")
+        file = open(path + "/" + fileName, "rb")
+        while True:
+            read = file.read(SIZE)
+            if not read:
+                break
+            connection.send(read)
+        file.close
+        print("File sent")
+#        connection.send("ok".encode(FORMAT))
     else:
-        conn.send("not ok".encode(FORMAT))
+        connection.send("not ok".encode(FORMAT))
+        print("not ok")
         return
-    file = open(path + "/" + name, "rb")
-    while True:
-        read = file.read(SIZE)
-        if not read:
-            break
-        conn.send(read)
-    file.close
-    print("File sent")
-    conn.send("ok".encode(FORMAT))
 
+
+'''
+    This fucntion will return a IP:PORT-current-time : msg  received by the client,          
+'''
 def msg_time(ip,port,msg):
     current_time = datetime.datetime.now().strftime("%Y-%m-%d@%H:%M:%S")
     m_time=print(f"[{ip}:{port}-{current_time}]: {msg}")
     return m_time
 
+'''
+This code defines a client_handler function that serves as a handler for client connections in a server. 
+The function takes three arguments: connection, address, and client_id. The connection argument is a socket 
+object that is connected to the client, address is a tuple of the client's IP address and port number, 
+and client_id is an identifier for the client. The code initializes a connection_time variable with the current date and time, 
+and then prints a message indicating a new connection with the client's IP and port number and the connection time.
+'''
 
-def handle_client(conn, addr, client_id):
-    ip, port = addr
-    conn_time=datetime.datetime.now().strftime("%Y-%m-%d@%H:%M:%S")
-    print(f"New connection: {ip}:{port}-{conn_time} client id: {client_id}")
-
+def client_handler(connection, address, client_id):
+    ip, port = address
+    connection_time=datetime.datetime.now().strftime("%Y-%m-%d@%H:%M:%S")
+    print(f"New connection: {ip}:{port}-{connection_time} client id: {client_id}")
     connected = True
     while connected:
-#        current_time = datetime.datetime.now().strftime("%Y-%m-%d@%H:%M:%S")
-        msg = conn.recv(SIZE).decode(FORMAT)
-#        print(f"Message from {addr}: {msg}")
-#        print(f"[{ip}:{port}-{current_time}]: {msg}")
+        msg = connection.recv(SIZE).decode(FORMAT)
         if msg == "exit":
             msg_time(ip,port,msg)
-            print(f"Connection from client {client_id} closed ({addr})")
-            conn.send("Disconnecteddddddd".encode(FORMAT))
+            print(f"Connection from client {client_id} closed ({address})")
+            connection.send("Disconnected".encode(FORMAT))
             connected = False
         elif msg[:3] == "ls ":
             msg_time(ip,port,msg)
-#            print(f"ls {addr}")
             args1 = msg.split(" ")
-            ls(conn, args1[1], args1[2])
-#            ls(conn, msg[3:])
+            ls(connection, args1[1], args1[2])
         elif msg[0:3] == "cd ":
-            '''
-            cPath=os.getcwd()
-            print(cPath)
-            print(f"cd {addr}")
-            cd(conn,msg[3:],cPath)
-            '''
             msg_time(ip,port,msg)
-#            print(f"cd {addr}")
             args = msg.split(" ")
-            cd(conn, args[1], args[2])
+            cd(connection, args[1], args[2])
         elif msg[0:6] == "mkdir ":
             msg_time(ip,port,msg)
-#            print(f"mkdir {addr}")
-#            print(msg)
-            mkdir(conn, msg[6:])
+            mkdir(connection, msg[6:])
         elif msg[0:7] == "upload ":
             msg_time(ip,port,msg)
-#            print(f"upload {addr}")
             args = msg.split(" ")
-            receive_file(conn, args[1], args[2])
+            upload(connection, args[1], args[2])
         elif msg[0:9] == "download ":
             msg_time(ip,port,msg)
-#            print(f"download{addr}")
             args = msg.split(" ")
-            send_file(conn, args[1], args[2])
+            download(connection, args[1], args[2])
         else:
             msg_time(ip,port,msg)
-#            print(f"Command not found from {addr}")
-            conn.send("Command not found".encode(FORMAT))
+            connection.send("Command not found".encode(FORMAT))
+    connection.close()
 
-    conn.close()
-
-
+'''
+This code defines a server_program function that starts a server. The function initializes a client identifier client_id to 0 
+and creates a socket object serverr. It then calls a server function to get the IP address and 
+port number of the server and binds the socket to that address and port using the bind method. The socket is then put into 
+listening mode using the listen method. The code prints a message indicating that the server has started and is waiting for connections.
+'''
 def server_program():
-    client_id = 0
     serverr = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     IP,PORT= server()
     serverr.bind((IP,PORT))
     serverr.listen()
     print(f"Server started on {IP}:{PORT}")
     print("Waiting for connection...")
-
+    client_id = 0
     while True:
-        conn, addr = serverr.accept()
-#        print (conn , addr)
+        connection, address = serverr.accept()
         client_id += 1
-        thread = threading.Thread(target=handle_client, args=(conn, addr, client_id))
+        thread = threading.Thread(target=client_handler, args=(connection, address, client_id))
         thread.start()
-
 
 if __name__ == '__main__':
     server_program()
